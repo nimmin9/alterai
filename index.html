@@ -1,286 +1,173 @@
-<!-- index.html -->
-<!doctype html>
-<html lang="en" data-page="snap-funnel">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+(function () {
+  // Footer year
+  const yearEl = document.getElementById("year");
+  if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
-    <title>ALTER | Content that shows up. Zero filming.</title>
-    <meta
-      name="description"
-      content="ALTER Core: content that shows up without filming. Scroll-native output, built from a stable digital stand-in."
-    />
+  const deck = document.getElementById("deck");
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const dotsNav = document.querySelector(".dots");
 
-    <!-- Social preview -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="ALTER | Content that shows up. Zero filming." />
-    <meta
-      property="og:description"
-      content="ALTER Core: content that shows up without filming. Scroll-native output, built from a stable digital stand-in."
-    />
-    <!-- Set these when deployed -->
-    <!-- <meta property="og:url" content="https://yourdomain.com" /> -->
-    <!-- <meta property="og:image" content="https://yourdomain.com/assets/og.jpg" /> -->
+  if (!deck || slides.length === 0 || !dotsNav) return;
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ALTER | Content that shows up. Zero filming." />
-    <meta
-      name="twitter:description"
-      content="ALTER Core: content that shows up without filming. Scroll-native output, built from a stable digital stand-in."
-    />
-    <!-- <meta name="twitter:image" content="https://yourdomain.com/assets/og.jpg" /> -->
+  // Build dots
+  slides.forEach((slide, idx) => {
+    const a = document.createElement("a");
+    a.className = "dot";
+    a.href = `#${slide.id}`;
+    a.setAttribute("aria-label", `Go to slide ${idx + 1}`);
+    a.setAttribute("role", "tab");
+    a.dataset.target = slide.id;
+    dotsNav.appendChild(a);
+  });
 
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
+  const dots = Array.from(document.querySelectorAll(".dot"));
 
-  <body>
-    <!-- Progress dots (JS populates) -->
-    <nav class="dots" aria-label="Slide navigation"></nav>
+  function setActiveDot(activeId) {
+    dots.forEach((d) =>
+      d.setAttribute("aria-current", d.dataset.target === activeId ? "true" : "false")
+    );
+  }
 
-    <main id="deck" class="deck" aria-label="Swipe funnel">
-      <!-- SLIDE 1 -->
-      <section class="slide" id="s1" data-title="Intro" aria-label="Slide 1">
-        <div class="slide-inner">
-          <header class="topbar">
-            <div class="brand">ALTER</div>
-            <a class="toplink" href="#s9">Get access</a>
-          </header>
+  // Hash -> scroll (without abrupt jumps)
+  function scrollToId(id, behavior) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: behavior || "smooth", block: "start" });
+  }
 
-          <div class="hero">
-            <div class="hero-copy">
-              <h1>Content that shows up.<br />Zero filming.</h1>
-              <p>
-                What becomes possible when you replace filming with a stable digital stand-in.
-              </p>
-              <div class="hero-cta">
-                <a class="btn primary" href="#s9">Get access to ALTER Core</a>
-                <a class="btn ghost" href="#s2">See why it works</a>
-              </div>
-              <p class="micro">No testimonials. No stats. Just output.</p>
-            </div>
+  // If loaded with a hash, scroll into view once layout settles
+  if (location.hash) {
+    const id = location.hash.replace("#", "");
+    window.requestAnimationFrame(() => scrollToId(id, "auto"));
+  }
 
-            <div class="strip" aria-label="Output preview strip">
-              <div class="frame">
-                <video class="media" src="./assets/hero-1.mp4" poster="./assets/hero-1.jpg" autoplay muted loop playsinline preload="metadata"></video>
-              </div>
-              <div class="frame">
-                <video class="media" src="./assets/hero-2.mp4" poster="./assets/hero-2.jpg" autoplay muted loop playsinline preload="metadata"></video>
-              </div>
-              <div class="frame">
-                <video class="media" src="./assets/hero-3.mp4" poster="./assets/hero-3.jpg" autoplay muted loop playsinline preload="metadata"></video>
-              </div>
-              <div class="frame">
-                <video class="media" src="./assets/hero-4.mp4" poster="./assets/hero-4.jpg" autoplay muted loop playsinline preload="metadata"></video>
-              </div>
-              <div class="frame">
-                <video class="media" src="./assets/hero-5.mp4" poster="./assets/hero-5.jpg" autoplay muted loop playsinline preload="metadata"></video>
-              </div>
-            </div>
-          </div>
+  // Clicking dots: smooth scroll and avoid double-jump
+  dotsNav.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLAnchorElement)) return;
+    if (!t.classList.contains("dot")) return;
 
-          <footer class="slide-footer">
-            <div class="hint">Scroll</div>
-          </footer>
-        </div>
-      </section>
+    const id = t.dataset.target;
+    if (!id) return;
 
-      <!-- SLIDE 2 -->
-      <section class="slide" id="s2" data-title="Friction" aria-label="Slide 2">
-        <div class="slide-inner two-col">
-          <div class="copy">
-            <h2>Filming is the bottleneck.</h2>
-            <p>
-              Most people don’t hate content. They hate filming. The friction is what breaks consistency.
-            </p>
-            <ul class="bullets">
-              <li>Energy mismatch</li>
-              <li>Setup fatigue</li>
-              <li>“I’ll do it later” delay</li>
-            </ul>
-            <div class="row">
-              <a class="btn ghost" href="#s3">What becomes possible</a>
-            </div>
-          </div>
+    e.preventDefault();
+    scrollToId(id, "smooth");
 
-          <div class="visual">
-            <div class="card">
-              <video class="media" src="./assets/tile-ugc.mp4" poster="./assets/tile-ugc.jpg" autoplay muted loop playsinline preload="metadata"></video>
-            </div>
-            <p class="caption">Scroll-native, not “AI demo.”</p>
-          </div>
-        </div>
-      </section>
+    // Update URL without forcing default jump
+    history.replaceState(null, "", `#${id}`);
+  });
 
-      <!-- SLIDE 3 -->
-      <section class="slide" id="s3" data-title="Outcomes" aria-label="Slide 3">
-        <div class="slide-inner">
-          <div class="stack">
-            <h2>What becomes possible</h2>
-            <div class="statements">
-              <p>You can create video content without filming.</p>
-              <p>You can repeat explanations without repeating yourself.</p>
-              <p>You can show up daily without being present.</p>
-            </div>
+  // Deterministic active slide: nearest snap point
+  function getActiveSlide() {
+    const deckRect = deck.getBoundingClientRect();
+    let best = null;
+    let bestDist = Infinity;
 
-            <div class="wide-row" aria-label="Outcome previews">
-              <figure class="wide">
-                <img class="wide-media" src="./assets/outcome-1.jpg" alt="Outcome preview still" loading="lazy" />
-              </figure>
-              <figure class="wide">
-                <img class="wide-media" src="./assets/outcome-2.jpg" alt="Outcome preview still" loading="lazy" />
-              </figure>
-              <figure class="wide">
-                <img class="wide-media" src="./assets/outcome-3.jpg" alt="Outcome preview still" loading="lazy" />
-              </figure>
-            </div>
-          </div>
-        </div>
-      </section>
+    slides.forEach((slide) => {
+      const r = slide.getBoundingClientRect();
+      const dist = Math.abs(r.top - deckRect.top);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = slide;
+      }
+    });
 
-      <!-- SLIDE 4 -->
-      <section class="slide" id="s4" data-title="UGC" aria-label="Slide 4">
-        <div class="slide-inner two-col">
-          <div class="visual">
-            <div class="card tall">
-              <video class="media" src="./assets/tile-ugc.mp4" poster="./assets/tile-ugc.jpg" autoplay muted loop playsinline preload="metadata"></video>
-            </div>
-            <p class="caption">UGC pacing. Casual. Real-world plausible.</p>
-          </div>
-          <div class="copy">
-            <h2>UGC content</h2>
-            <p>Make native, scrollable clips without recording yourself.</p>
-            <ul class="bullets">
-              <li>Same identity across posts</li>
-              <li>Fast variations without reshoots</li>
-              <li>Low friction publishing</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+    return best;
+  }
 
-      <!-- SLIDE 5 -->
-      <section class="slide" id="s5" data-title="Ads" aria-label="Slide 5">
-        <div class="slide-inner two-col reverse">
-          <div class="visual">
-            <div class="card tall">
-              <video class="media" src="./assets/tile-ads.mp4" poster="./assets/tile-ads.jpg" autoplay muted loop playsinline preload="metadata"></video>
-            </div>
-            <p class="caption">Paid-social clean, still feed-native.</p>
-          </div>
-          <div class="copy">
-            <h2>Creative ads</h2>
-            <p>Generate multiple angles from one stable digital presence.</p>
-            <ul class="bullets">
-              <li>Hook variants</li>
-              <li>Offer variants</li>
-              <li>Audience-specific versions</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+  let ticking = false;
+  function updateActiveFromScroll() {
+    const active = getActiveSlide();
+    if (!active) return;
+    const id = active.id;
 
-      <!-- SLIDE 6 -->
-      <section class="slide" id="s6" data-title="Series" aria-label="Slide 6">
-        <div class="slide-inner two-col">
-          <div class="visual">
-            <div class="card tall">
-              <video class="media" src="./assets/tile-reels.mp4" poster="./assets/tile-reels.jpg" autoplay muted loop playsinline preload="metadata"></video>
-            </div>
-            <p class="caption">Recognizable format. Repeatable output.</p>
-          </div>
-          <div class="copy">
-            <h2>Short-form consistency</h2>
-            <p>Build a repeatable format that works across platforms.</p>
-            <ul class="bullets">
-              <li>Same framing, same light</li>
-              <li>Series-ready structure</li>
-              <li>Minimal production overhead</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+    setActiveDot(id);
 
-      <!-- SLIDE 7 -->
-      <section class="slide" id="s7" data-title="LinkedIn" aria-label="Slide 7">
-        <div class="slide-inner two-col reverse">
-          <div class="visual">
-            <div class="card tall">
-              <video class="media" src="./assets/tile-linkedin.mp4" poster="./assets/tile-linkedin.jpg" autoplay muted loop playsinline preload="metadata"></video>
-            </div>
-            <p class="caption">Calm delivery. No influencer energy.</p>
-          </div>
-          <div class="copy">
-            <h2>LinkedIn explainers</h2>
-            <p>Credible delivery without needing to “show up on camera.”</p>
-            <ul class="bullets">
-              <li>Professional tone</li>
-              <li>Stable identity, less noise</li>
-              <li>Fits thought-leader content</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+    // Keep hash synced while scrolling (replaceState avoids back-button spam)
+    if (location.hash !== `#${id}`) history.replaceState(null, "", `#${id}`);
+  }
 
-      <!-- SLIDE 8 -->
-      <section class="slide" id="s8" data-title="Client-safe" aria-label="Slide 8">
-        <div class="slide-inner two-col">
-          <div class="visual duo">
-            <div class="card tall">
-              <video class="media" src="./assets/tile-service.mp4" poster="./assets/tile-service.jpg" autoplay muted loop playsinline preload="metadata"></video>
-              <div class="tag">Client delivery</div>
-            </div>
-            <div class="card tall">
-              <video class="media" src="./assets/tile-influencer.mp4" poster="./assets/tile-influencer.jpg" autoplay muted loop playsinline preload="metadata"></video>
-              <div class="tag">Digital persona</div>
-            </div>
-          </div>
-          <div class="copy">
-            <h2>Client-safe and scalable</h2>
-            <p>Use it personally, or package it as a deliverable.</p>
-            <ul class="bullets">
-              <li>Reusable setup</li>
-              <li>Output consistency</li>
-              <li>Clear production system</li>
-            </ul>
-            <div class="mini-proof">
-              <img src="./assets/process.jpg" alt="Process artifact preview" loading="lazy" />
-              <p class="micro">Structure beats novelty.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+  deck.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      updateActiveFromScroll();
+      ticking = false;
+    });
+  });
 
-      <!-- SLIDE 9 -->
-      <section class="slide" id="s9" data-title="Access" aria-label="Slide 9">
-        <div class="slide-inner">
-          <div class="cta-card">
-            <h2>Learn how this is built in ALTER Core.</h2>
-            <p class="sub">
-              Self-paced. Limited support window. Built to produce publishable output.
-            </p>
+  // Initial state
+  setActiveDot(slides[0].id);
+  requestAnimationFrame(updateActiveFromScroll);
 
-            <div class="cta-row">
-              <a class="btn primary" href="[STRIPE_CHECKOUT_LINK]" rel="noopener">Get access to ALTER Core</a>
-              <a class="btn ghost" href="#s1">Back to top</a>
-            </div>
+  // Re-sync on resize/orientation changes
+  window.addEventListener("resize", () => requestAnimationFrame(updateActiveFromScroll));
 
-            <p class="micro">
-              Replace <code>[STRIPE_CHECKOUT_LINK]</code> and add your social links.
-            </p>
+  // Keyboard navigation
+  function go(delta) {
+    const current = dots.findIndex((d) => d.getAttribute("aria-current") === "true");
+    const next = Math.max(0, Math.min(slides.length - 1, current + delta));
+    slides[next].scrollIntoView({ behavior: "smooth", block: "start" });
+    slides[next].focus({ preventScroll: true });
+  }
 
-            <div class="footer-links">
-              <a href="[INSTAGRAM_LINK]" rel="noopener">Instagram</a>
-              <a href="[YOUTUBE_LINK]" rel="noopener">YouTube</a>
-              <a href="[LINKEDIN_LINK]" rel="noopener">LinkedIn</a>
-              <a href="[FACEBOOK_LINK]" rel="noopener">Facebook</a>
-            </div>
-          </div>
-          <p class="endnote">© <span id="year"></span> ALTER</p>
-        </div>
-      </section>
-    </main>
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "PageDown") go(1);
+    if (e.key === "ArrowUp" || e.key === "PageUp") go(-1);
+  });
 
-    <!-- Note: your uploaded file is scripts.js, so this points to scripts.js -->
-    <script src="./scripts.js"></script>
-  </body>
-</html>
+  // Video play hygiene for mobile browsers
+  const videos = Array.from(document.querySelectorAll("video"));
+
+  function safePlay(v) {
+    try {
+      const p = v.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch {}
+  }
+
+  function safePause(v) {
+    try {
+      v.pause();
+    } catch {}
+  }
+
+  // Ensure muted + playsinline (some browsers are strict)
+  videos.forEach((v) => {
+    v.muted = true;
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+  });
+
+  // Lazy play: only videos near viewport play
+  const videoObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const v = entry.target;
+        if (entry.isIntersecting) safePlay(v);
+        else safePause(v);
+      });
+    },
+    { root: deck, threshold: 0.25 }
+  );
+
+  videos.forEach((v) => videoObserver.observe(v));
+
+  // Pause videos when tab hidden; when visible, re-evaluate visible ones
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      videos.forEach(safePause);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      const deckRect = deck.getBoundingClientRect();
+      videos.forEach((v) => {
+        const r = v.getBoundingClientRect();
+        const isVisible =
+          r.bottom > deckRect.top && r.top < deckRect.bottom && r.right > deckRect.left && r.left < deckRect.right;
+        if (isVisible) safePlay(v);
+      });
+    });
+  });
+})();
