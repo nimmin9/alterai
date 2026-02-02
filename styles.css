@@ -1,173 +1,471 @@
-(function () {
-  // Footer year
-  const yearEl = document.getElementById("year");
-  if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+/* styles.css */
+:root{
+  /* Core palette */
+  --bg:#0B0D10;
+  --panel:#11151B;
+  --panel2:#0F1319;
+  --text:#F5F7FA;
+  --muted:rgba(245,247,250,.72);
+  --muted2:rgba(245,247,250,.56);
 
-  const deck = document.getElementById("deck");
-  const slides = Array.from(document.querySelectorAll(".slide"));
-  const dotsNav = document.querySelector(".dots");
+  --line:rgba(245,247,250,.10);
+  --line2:rgba(245,247,250,.14);
 
-  if (!deck || slides.length === 0 || !dotsNav) return;
+  --accent:#B7FF4A;          /* highlight */
+  --accent2:rgba(183,255,74,.22);
 
-  // Build dots
-  slides.forEach((slide, idx) => {
-    const a = document.createElement("a");
-    a.className = "dot";
-    a.href = `#${slide.id}`;
-    a.setAttribute("aria-label", `Go to slide ${idx + 1}`);
-    a.setAttribute("role", "tab");
-    a.dataset.target = slide.id;
-    dotsNav.appendChild(a);
-  });
+  --shadow: 0 18px 60px rgba(0,0,0,0.55);
+  --shadow2: 0 10px 30px rgba(0,0,0,0.45);
 
-  const dots = Array.from(document.querySelectorAll(".dot"));
+  --r:18px;
+  --r2:14px;
 
-  function setActiveDot(activeId) {
-    dots.forEach((d) =>
-      d.setAttribute("aria-current", d.dataset.target === activeId ? "true" : "false")
-    );
-  }
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
 
-  // Hash -> scroll (without abrupt jumps)
-  function scrollToId(id, behavior) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.scrollIntoView({ behavior: behavior || "smooth", block: "start" });
-  }
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  background:
+    radial-gradient(900px 500px at 18% 8%, rgba(183,255,74,0.10), transparent 60%),
+    radial-gradient(900px 520px at 90% 22%, rgba(255,255,255,0.06), transparent 62%),
+    radial-gradient(900px 620px at 40% 92%, rgba(255,255,255,0.04), transparent 60%),
+    var(--bg);
+  color:var(--text);
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
 
-  // If loaded with a hash, scroll into view once layout settles
-  if (location.hash) {
-    const id = location.hash.replace("#", "");
-    window.requestAnimationFrame(() => scrollToId(id, "auto"));
-  }
+a{ color:inherit; text-decoration:none; }
+a:hover{ opacity:.95; }
 
-  // Clicking dots: smooth scroll and avoid double-jump
-  dotsNav.addEventListener("click", (e) => {
-    const t = e.target;
-    if (!(t instanceof HTMLAnchorElement)) return;
-    if (!t.classList.contains("dot")) return;
+::selection{ background: rgba(183,255,74,.28); color: var(--text); }
 
-    const id = t.dataset.target;
-    if (!id) return;
+.btn{
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:10px 14px;
+  font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:rgba(245,247,250,0.02);
+  color:var(--text);
+  cursor:pointer;
+  transition: transform 140ms var(--ease), background 160ms var(--ease), border-color 160ms var(--ease), box-shadow 160ms var(--ease), opacity 160ms var(--ease);
+  will-change: transform;
+  user-select:none;
+}
 
-    e.preventDefault();
-    scrollToId(id, "smooth");
+.btn.primary{
+  background: linear-gradient(180deg, rgba(183,255,74,.95), rgba(183,255,74,.80));
+  color:#0B0D10;
+  border-color:transparent;
+  box-shadow: 0 14px 40px rgba(183,255,74,.18);
+}
 
-    // Update URL without forcing default jump
-    history.replaceState(null, "", `#${id}`);
-  });
+.btn.ghost{
+  background: rgba(245,247,250,0.04);
+}
 
-  // Deterministic active slide: nearest snap point
-  function getActiveSlide() {
-    const deckRect = deck.getBoundingClientRect();
-    let best = null;
-    let bestDist = Infinity;
+.btn:hover{
+  transform: translateY(-1px);
+  border-color: var(--line2);
+}
 
-    slides.forEach((slide) => {
-      const r = slide.getBoundingClientRect();
-      const dist = Math.abs(r.top - deckRect.top);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = slide;
-      }
-    });
+.btn.primary:hover{
+  box-shadow: 0 18px 55px rgba(183,255,74,.22);
+}
 
-    return best;
-  }
+.btn:active{
+  transform: translateY(0px);
+  opacity:.98;
+}
 
-  let ticking = false;
-  function updateActiveFromScroll() {
-    const active = getActiveSlide();
-    if (!active) return;
-    const id = active.id;
+.btn:focus-visible{
+  outline:none;
+  box-shadow: 0 0 0 3px rgba(183,255,74,.18), 0 0 0 1px rgba(183,255,74,.30) inset;
+}
 
-    setActiveDot(id);
+.micro{ color:var(--muted2); font-size:13px; margin:12px 0 0 0; }
+code{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; }
 
-    // Keep hash synced while scrolling (replaceState avoids back-button spam)
-    if (location.hash !== `#${id}`) history.replaceState(null, "", `#${id}`);
-  }
+.deck{
+  height:100vh;
+  overflow-y:auto;
+  scroll-snap-type:y mandatory;
+  scroll-behavior:auto; /* avoid double easing; JS controls smooth scroll */
+}
 
-  deck.addEventListener("scroll", () => {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      updateActiveFromScroll();
-      ticking = false;
-    });
-  });
+/* Scrollbar (subtle, dark) */
+.deck::-webkit-scrollbar{ width:10px; }
+.deck::-webkit-scrollbar-thumb{
+  background: rgba(245,247,250,0.10);
+  border-radius:999px;
+  border: 2px solid rgba(11,13,16,0.85);
+}
+.deck::-webkit-scrollbar-thumb:hover{ background: rgba(245,247,250,0.18); }
+.deck::-webkit-scrollbar-track{ background: transparent; }
 
-  // Initial state
-  setActiveDot(slides[0].id);
-  requestAnimationFrame(updateActiveFromScroll);
+.slide{
+  min-height:100vh;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+  padding-bottom:calc(28px + env(safe-area-inset-bottom));
+}
 
-  // Re-sync on resize/orientation changes
-  window.addEventListener("resize", () => requestAnimationFrame(updateActiveFromScroll));
+.slide-inner{
+  width:min(1080px, 100%);
+}
 
-  // Keyboard navigation
-  function go(delta) {
-    const current = dots.findIndex((d) => d.getAttribute("aria-current") === "true");
-    const next = Math.max(0, Math.min(slides.length - 1, current + delta));
-    slides[next].scrollIntoView({ behavior: "smooth", block: "start" });
-    slides[next].focus({ preventScroll: true });
-  }
+/* Slide layouts */
+.two-col{
+  display:grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap:18px;
+  align-items:center;
+}
+.two-col.reverse{ grid-template-columns: 0.95fr 1.05fr; }
+.two-col.reverse .copy{ order:2; }
+.two-col.reverse .visual{ order:1; }
 
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowDown" || e.key === "PageDown") go(1);
-    if (e.key === "ArrowUp" || e.key === "PageUp") go(-1);
-  });
+.copy h2{
+  margin:0 0 10px 0;
+  font-size:28px;
+  letter-spacing:-0.4px;
+}
+.copy p{ margin:0 0 14px 0; color:var(--muted); max-width:62ch; }
 
-  // Video play hygiene for mobile browsers
-  const videos = Array.from(document.querySelectorAll("video"));
+.bullets{
+  margin:0;
+  padding:0 0 0 18px;
+  color:var(--text);
+}
+.bullets li{ margin:8px 0; color: rgba(245,247,250,.86); }
 
-  function safePlay(v) {
-    try {
-      const p = v.play();
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    } catch {}
-  }
+.row{ margin-top:14px; }
 
-  function safePause(v) {
-    try {
-      v.pause();
-    } catch {}
-  }
+/* Slide 1 */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
 
-  // Ensure muted + playsinline (some browsers are strict)
-  videos.forEach((v) => {
-    v.muted = true;
-    v.setAttribute("muted", "");
-    v.setAttribute("playsinline", "");
-  });
+.brand{
+  font-weight:700;
+  letter-spacing:0.22px;
+  text-transform:uppercase;
+  font-size:12px;
+  color: rgba(245,247,250,.86);
+}
 
-  // Lazy play: only videos near viewport play
-  const videoObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        const v = entry.target;
-        if (entry.isIntersecting) safePlay(v);
-        else safePause(v);
-      });
-    },
-    { root: deck, threshold: 0.25 }
-  );
+.toplink{
+  color:var(--muted2);
+  font-size:13px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid transparent;
+  background: transparent;
+  transition: background 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease);
+}
+.toplink:hover{
+  color: var(--text);
+  opacity:1;
+  background: rgba(245,247,250,0.04);
+  border-color: var(--line);
+}
 
-  videos.forEach((v) => videoObserver.observe(v));
+.hero{
+  display:grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap:18px;
+  align-items:start;
+}
 
-  // Pause videos when tab hidden; when visible, re-evaluate visible ones
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      videos.forEach(safePause);
-      return;
-    }
+.hero h1{
+  margin:0 0 10px 0;
+  font-size:50px;
+  line-height:1.03;
+  letter-spacing:-1.0px;
+}
 
-    requestAnimationFrame(() => {
-      const deckRect = deck.getBoundingClientRect();
-      videos.forEach((v) => {
-        const r = v.getBoundingClientRect();
-        const isVisible =
-          r.bottom > deckRect.top && r.top < deckRect.bottom && r.right > deckRect.left && r.left < deckRect.right;
-        if (isVisible) safePlay(v);
-      });
-    });
-  });
-})();
+.hero p{ margin:0 0 14px 0; color:var(--muted); max-width:56ch; }
+.hero-cta{ display:flex; gap:10px; flex-wrap:wrap; }
+
+.strip{
+  display:grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap:10px;
+}
+
+.frame{
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border:1px solid var(--line);
+  border-radius:var(--r2);
+  overflow:hidden;
+  box-shadow:var(--shadow2);
+  transform: translateZ(0);
+}
+
+.media{
+  width:100%;
+  height:100%;
+  aspect-ratio:9/16;
+  object-fit:cover;
+  display:block;
+  filter: saturate(1.02) contrast(1.02);
+}
+
+.slide-footer{
+  margin-top:16px;
+  display:flex;
+  justify-content:flex-start;
+}
+
+.hint{
+  font-size:12px;
+  color:var(--muted2);
+  border:1px solid var(--line);
+  background: rgba(245,247,250,0.03);
+  padding:6px 10px;
+  border-radius:999px;
+}
+
+/* Cards / visuals */
+.visual .card, .card{
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  overflow:hidden;
+  box-shadow:var(--shadow2);
+}
+
+.card.tall .media{ aspect-ratio:9/16; }
+
+.caption{
+  margin:10px 0 0 0;
+  font-size:13px;
+  color:var(--muted2);
+}
+
+/* Slide 3 */
+.stack h2{
+  margin:0 0 12px 0;
+  font-size:28px;
+  letter-spacing:-0.3px;
+}
+
+.statements{
+  display:grid;
+  gap:10px;
+  max-width:72ch;
+}
+
+.statements p{
+  margin:0;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:var(--r2);
+  background: rgba(245,247,250,0.03);
+  box-shadow:var(--shadow2);
+  font-size:18px;
+  line-height:1.35;
+}
+
+.wide-row{
+  margin-top:16px;
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+}
+
+.wide{
+  margin:0;
+  border:1px solid var(--line);
+  border-radius:var(--r2);
+  overflow:hidden;
+  background: rgba(245,247,250,0.02);
+  box-shadow:var(--shadow2);
+}
+
+.wide-media{
+  width:100%;
+  height:100%;
+  aspect-ratio:16/10;
+  object-fit:cover;
+  display:block;
+}
+
+/* Slide 8 duo */
+.duo{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.tag{
+  position:absolute;
+  margin:10px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  color: rgba(11,13,16,0.92);
+  background: rgba(183,255,74,0.88);
+  border: 1px solid rgba(183,255,74,0.45);
+  box-shadow: 0 12px 30px rgba(183,255,74,0.10);
+}
+
+.duo .card{ position:relative; }
+
+.mini-proof{
+  margin-top:14px;
+  display:grid;
+  gap:10px;
+  max-width:520px;
+}
+.mini-proof img{
+  width:100%;
+  height:100%;
+  aspect-ratio:16/10;
+  object-fit:cover;
+  border-radius:var(--r2);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow2);
+}
+
+/* Slide 9 */
+.cta-card{
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  box-shadow:var(--shadow);
+  padding:18px;
+  max-width:760px;
+}
+
+.cta-card h2{
+  margin:0 0 8px 0;
+  font-size:28px;
+  letter-spacing:-0.4px;
+}
+
+.cta-card .sub{
+  margin:0 0 14px 0;
+  color:var(--muted);
+}
+
+.cta-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+.footer-links{
+  margin-top:12px;
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  font-size:13px;
+  color:var(--muted2);
+}
+.footer-links a{
+  color:var(--muted2);
+  padding:6px 8px;
+  border-radius:10px;
+  border: 1px solid transparent;
+  transition: background 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease);
+}
+.footer-links a:hover{
+  color:var(--text);
+  opacity:1;
+  background: rgba(245,247,250,0.04);
+  border-color: var(--line);
+}
+
+.endnote{
+  margin:14px 0 0 0;
+  color:var(--muted2);
+  font-size:13px;
+}
+
+/* Dots */
+.dots{
+  position:fixed;
+  right:14px;
+  top:50%;
+  transform:translateY(-50%);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  z-index:50;
+  padding:12px 10px;
+  border-radius:999px;
+  background: rgba(11,13,16,0.35);
+  border: 1px solid rgba(245,247,250,0.08);
+  backdrop-filter: blur(10px);
+}
+
+.dot{
+  position:relative;
+  width:12px;
+  height:12px;
+  border-radius:999px;
+  border:1px solid rgba(245,247,250,0.18);
+  background: rgba(245,247,250,0.06);
+  cursor:pointer;
+  transition: transform 140ms var(--ease), background 160ms var(--ease), border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+
+.dot::after{
+  content:"";
+  position:absolute;
+  inset:-6px; /* increases tap target without changing visuals */
+}
+
+.dot:hover{
+  transform: scale(1.05);
+  border-color: rgba(245,247,250,0.28);
+}
+
+.dot[aria-current="true"]{
+  background: rgba(183,255,74,0.95);
+  border-color: rgba(183,255,74,0.55);
+  box-shadow: 0 0 0 6px rgba(183,255,74,0.12);
+}
+
+/* Responsive */
+@media (max-width: 980px){
+  .hero{ grid-template-columns:1fr; }
+  .strip{ grid-template-columns:repeat(3, 1fr); }
+  .two-col, .two-col.reverse{ grid-template-columns:1fr; }
+  .two-col.reverse .copy, .two-col.reverse .visual{ order:unset; }
+  .wide-row{ grid-template-columns:1fr; }
+  .duo{ grid-template-columns:1fr; }
+  .hero h1{ font-size:44px; }
+  .copy h2, .stack h2, .cta-card h2{ font-size:26px; }
+  .dots{ right:10px; }
+}
+
+@media (max-width: 520px){
+  .strip{ grid-template-columns:repeat(2, 1fr); }
+  .slide{ padding:18px; padding-bottom:calc(18px + env(safe-area-inset-bottom)); }
+  .hero h1{ font-size:36px; }
+}
+
+/* Motion accessibility */
+@media (prefers-reduced-motion: reduce){
+  .deck{ scroll-behavior:auto; }
+  .btn, .dot, .toplink, .footer-links a{ transition:none; }
+  .btn:hover{ transform:none; }
+  .dot:hover{ transform:none; }
+}
