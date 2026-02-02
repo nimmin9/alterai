@@ -1,4 +1,3 @@
-// scripts.js
 (function () {
   // Footer year
   const yearEl = document.getElementById("year");
@@ -16,6 +15,7 @@
     a.className = "dot";
     a.href = `#${slide.id}`;
     a.setAttribute("aria-label", `Go to slide ${idx + 1}`);
+    a.setAttribute("role", "tab");
     a.dataset.target = slide.id;
     dotsNav.appendChild(a);
   });
@@ -57,31 +57,58 @@
     history.replaceState(null, "", `#${id}`);
   });
 
-  // Observe which slide is active
-  const io = new IntersectionObserver(
-    (entries) => {
-      const best = entries
-        .filter((e) => e.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (!best) return;
+  // Deterministic active slide: nearest snap point
+  function getActiveSlide() {
+    const deckRect = deck.getBoundingClientRect();
+    let best = null;
+    let bestDist = Infinity;
 
-      const id = best.target.id;
-      setActiveDot(id);
+    slides.forEach((slide) => {
+      const r = slide.getBoundingClientRect();
+      const dist = Math.abs(r.top - deckRect.top);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = slide;
+      }
+    });
 
-      // Keep hash synced while scrolling (replaceState avoids back-button spam)
-      if (location.hash !== `#${id}`) history.replaceState(null, "", `#${id}`);
-    },
-    { root: deck, threshold: [0.55, 0.7, 0.85] }
-  );
+    return best;
+  }
 
-  slides.forEach((s) => io.observe(s));
+  let ticking = false;
+  function updateActiveFromScroll() {
+    const active = getActiveSlide();
+    if (!active) return;
+    const id = active.id;
+
+    setActiveDot(id);
+
+    // Keep hash synced while scrolling (replaceState avoids back-button spam)
+    if (location.hash !== `#${id}`) history.replaceState(null, "", `#${id}`);
+  }
+
+  deck.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      updateActiveFromScroll();
+      ticking = false;
+    });
+  });
+
+  // Initial state
   setActiveDot(slides[0].id);
+  requestAnimationFrame(updateActiveFromScroll);
+
+  // Re-sync on resize/orientation changes
+  window.addEventListener("resize", () => requestAnimationFrame(updateActiveFromScroll));
 
   // Keyboard navigation
   function go(delta) {
     const current = dots.findIndex((d) => d.getAttribute("aria-current") === "true");
     const next = Math.max(0, Math.min(slides.length - 1, current + delta));
     slides[next].scrollIntoView({ behavior: "smooth", block: "start" });
+    slides[next].focus({ preventScroll: true });
   }
 
   window.addEventListener("keydown", (e) => {
@@ -100,7 +127,9 @@
   }
 
   function safePause(v) {
-    try { v.pause(); } catch {}
+    try {
+      v.pause();
+    } catch {}
   }
 
   // Ensure muted + playsinline (some browsers are strict)
@@ -110,9 +139,35 @@
     v.setAttribute("playsinline", "");
   });
 
-  // Pause videos when tab hidden
+  // Lazy play: only videos near viewport play
+  const videoObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const v = entry.target;
+        if (entry.isIntersecting) safePlay(v);
+        else safePause(v);
+      });
+    },
+    { root: deck, threshold: 0.25 }
+  );
+
+  videos.forEach((v) => videoObserver.observe(v));
+
+  // Pause videos when tab hidden; when visible, re-evaluate visible ones
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) videos.forEach(safePause);
-    else videos.forEach(safePlay);
+    if (document.hidden) {
+      videos.forEach(safePause);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      const deckRect = deck.getBoundingClientRect();
+      videos.forEach((v) => {
+        const r = v.getBoundingClientRect();
+        const isVisible =
+          r.bottom > deckRect.top && r.top < deckRect.bottom && r.right > deckRect.left && r.left < deckRect.right;
+        if (isVisible) safePlay(v);
+      });
+    });
   });
 })();
